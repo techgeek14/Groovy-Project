@@ -1,0 +1,27 @@
+plugins {
+    id 'groovy'
+}
+
+group = 'com.demo'
+version = '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation fileTree('C:/Program Files (x86)/Groovy/lib') {
+        include '*.jar'
+        include '*/*.jar'
+    }
+    // https://mvnrepository.com/artifact/com.codeborne/selenide
+    implementation 'com.codeborne:selenide:6.18.0'
+    testImplementation platform('org.junit:junit-bom:5.9.1')
+    // https://mvnrepository.com/artifact/org.jsoup/jsoup html parser
+    implementation 'org.jsoup:jsoup:1.16.1'
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+}
+
+test {
+    useJUnitPlatform()
+}
