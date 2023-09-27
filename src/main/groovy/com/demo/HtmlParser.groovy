@@ -1,8 +1,7 @@
 package com.demo
 
-import com.vaadin.flow.component.Component
+
 import com.vaadin.flow.component.Key
-import com.vaadin.flow.component.Text
 import com.vaadin.flow.component.button.Button
 import com.vaadin.flow.component.grid.Grid
 import com.vaadin.flow.component.html.Div
@@ -10,21 +9,15 @@ import com.vaadin.flow.component.html.Label
 import com.vaadin.flow.component.html.Span
 import com.vaadin.flow.component.notification.Notification
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout
-import com.vaadin.flow.component.orderedlayout.VerticalLayout
 import com.vaadin.flow.component.textfield.TextField
 import com.vaadin.flow.router.PageTitle
 import com.vaadin.flow.router.Route
-import groovy.transform.builder.Builder
-import org.jsoup.Jsoup
 import org.jsoup.internal.StringUtil
-import org.jsoup.nodes.Document
 import org.jsoup.nodes.Element
 import org.jsoup.select.Elements
 
-import javax.tools.JavaCompiler
-import javax.tools.ToolProvider
 import java.util.stream.Stream
-
+import groovy.lang.GroovyShell
 
 String charsetName = "UTF-8"
 File source = new File("C:\\Users\\r.raju\\Desktop\\Groovy\\source.html");
@@ -117,15 +110,28 @@ def text = '$packageInfo\n' +
         '\n' +
         '}\n'
 
-def binding =
-        ["pageTitle": "HomeScreen", "routeValue": "/home", "packageInfo": "package com.example.application.views.main;", "imports": VaadinTemplate.generateImports(imports)]
+//def binding =
+//        ["pageTitle": "HomeScreen", "routeValue": "/home", "packageInfo": "package com.example.application.views.main;", "imports": VaadinTemplate.generateImports(imports)]
 
 //def engine = new groovy.text.SimpleTemplateEngine()
 //def template = engine.createTemplate(text).make(binding)
 //println template;
 
-String id = UUID.randomUUID().toString().split("-")[0].substring(0, 4);
-println VaadinTemplate.componentGenerator("div", id, "color:red; border: 1px;");
-println VaadinTemplate.map;
-println VaadinTemplate.getInstanceComponentTemplate();
-println VaadinTemplate.getActionListenerTemplate();
+List<String> strList = List.of("text", "table", "span", "main", "section", "submit", "button");
+StringBuilder components = new StringBuilder();
+strList.forEach { x -> {
+        String id = UUID.randomUUID().toString().split("-")[0].substring(0, 4);
+        components.append(VaadinCodeGenerator.getComponent(x, id, "color:red; border: 1px;", "hello world"));
+    }
+}
+
+def template = VaadinTemplate.getTemplate();
+def componentImports = VaadinCodeGenerator.generateImports();
+
+def binding =
+        ["packageInfo": "com.example.application.views.main",
+         "imports": componentImports, "route": "testScreen",
+         "screen": "TestScreen", "components": components.toString()]
+
+def engine = new groovy.text.SimpleTemplateEngine()
+println engine.createTemplate(template).make(binding);
