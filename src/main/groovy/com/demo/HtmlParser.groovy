@@ -17,7 +17,7 @@ import org.jsoup.nodes.Element
 import java.util.stream.Stream
 
 String charsetName = "UTF-8"
-File source = new File("C:\\Users\\r.raju\\Desktop\\Groovy\\source.html");
+File source = new File("C:\\Users\\angry\\Desktop\\Groovy-script\\employee.html");
 Document doc = Jsoup.parse(source, charsetName);
 Element htmlElement = doc;
 
@@ -28,25 +28,19 @@ htmlElement.body().children().forEach {element -> {
 
 void processDomElement(Element element, String parentId) {
     String rootId = StringUtils.isEmpty(parentId) ? VaadinCodeGenerator.generateRefVariable(element) : parentId;
-    if (!skipElement(element) && element.attributes().get("parentId").isEmpty()) {
+    if (element.attributes().get("parentId").isEmpty()) {
         VaadinCodeGenerator.getComponent(element, rootId);
     }
     element.children().forEach { childElement -> {
-            if (!skipElement(childElement)) {
-                String childId = VaadinCodeGenerator.generateRefVariable(childElement);
-                childElement.attributes().add("parentId", rootId);
-                childElement.attributes().add("compType", VaadinCodeGenerator.getElementByTagName(element));
-                VaadinCodeGenerator.getComponent(childElement, childId);
-                processDomElement(childElement, childId);
-            }
+        if(! VaadinCodeGenerator.skipElement(element)){
+            String childId = VaadinCodeGenerator.generateRefVariable(childElement);
+            childElement.attributes().add("parentId", rootId);
+            childElement.attributes().add("compType", VaadinCodeGenerator.getElementByTagName(element));
+            VaadinCodeGenerator.getComponent(childElement, childId);
+            processDomElement(childElement, childId);
         }
+      }
     }
-}
-
-
-boolean skipElement(Element element){
-    List<String> tags = List.of("table", "svg", "br");
-    return tags.contains(element.tagName());
 }
 
 def template = VaadinTemplate.getTemplate();
@@ -57,8 +51,13 @@ def binding =
          "imports": VaadinCodeGenerator.generateImports(), "route": "testScreen",
          "className": className, "components": VaadinCodeGenerator.components.toString()]
 
-def engine = new groovy.text.SimpleTemplateEngine()
-String content = engine.createTemplate(template).make(binding);
+//def engine = new groovy.text.SimpleTemplateEngine()
+//String content = engine.createTemplate(template).make(binding);
+
+def f = new File('templates/VaadinSkeleton.template')
+def engine = new groovy.text.GStringTemplateEngine()
+def content = engine.createTemplate(f).make(binding)
+println content.toString()
 
 def path = "D:\\my-todo\\src\\main\\java\\com\\example\\application\\views\\main\\${className}.java";
 try {

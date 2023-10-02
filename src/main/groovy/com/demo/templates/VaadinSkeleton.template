@@ -1,0 +1,19 @@
+package $packageInfo;
+
+import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
+$imports
+
+@PageTitle("HomeScreen")
+@Route(value = "/$route")
+public class $className extends HorizontalLayout {
+   private VerticalLayout content = new VerticalLayout();
+
+   public $className() {}
+
+   @PostConstruct
+   void initComponent() {
+    $components
+    add(content);
+   }
+}

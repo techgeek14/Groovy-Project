@@ -1,8 +1,6 @@
 package com.demo;
 
-import com.vaadin.flow.component.Component;
-import com.vaadin.flow.component.HasComponents;
-import com.vaadin.flow.component.HtmlContainer;
+import com.vaadin.flow.component.*;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.Main;
@@ -76,6 +74,8 @@ public class VaadinCodeGenerator {
         elementMapper.put("nav", HorizontalLayout.class);
         elementMapper.put("i", elementMapper.get("svg"));
         elementMapper.put("a", Anchor.class);
+        elementMapper.put("h2", elementMapper.get("span"));
+        elementMapper.put("form", elementMapper.get("div"));
     }
     public static String generateImports(){
         StringBuilder sb = new StringBuilder();
@@ -86,13 +86,14 @@ public class VaadinCodeGenerator {
     }
 
     public static void getComponent(Element element, String refVariable) {
-        StringBuilder sb = new StringBuilder();
-        Class<?> compClass = elementMapper.get(getElementByTagName(element)) != null ? elementMapper.get(getElementByTagName(element)) : elementMapper.get("default");
-        String key = compClass.getSimpleName();
-        sb.append(generateComponentTemplate(key, refVariable, element));
-//        sb.append("\n");
-        imports.add(compClass.getCanonicalName());
-        components.append(sb).append("\n");
+        if(! skipElement(element)){
+            StringBuilder sb = new StringBuilder();
+            Class<?> compClass = elementMapper.get(getElementByTagName(element)) != null ? elementMapper.get(getElementByTagName(element)) : elementMapper.get("default");
+            String key = compClass.getSimpleName();
+            sb.append(generateComponentTemplate(key, refVariable, element));
+            imports.add(compClass.getCanonicalName());
+            components.append(sb);
+        }
     }
 
     public static String generateComponentTemplate(String component, String refVariable, Element element) {
@@ -120,14 +121,9 @@ public class VaadinCodeGenerator {
                 sb.append(String.format("%s %s = new %s(%s.QUESTION_CIRCLE_O);", component, refVariable, component, elementMapper.get("vaadinIcon").getSimpleName())).append("\n");
                 sb.append(getDefaultTemplateProperties(refVariable, element));
             }
-//            case "TextField" -> {
-//                sb.append(String.format("%s %s = new %s();", component, refVariable, component)).append("\n");
-//                sb.append(getDefaultTemplateProperties(refVariable, style, id));
-////                sb.append(String.format("tf.setValue(\"abc\");"));
-//            }
             default -> {
                 sb.append(String.format("%s %s = new %s();", component, refVariable, component)).append("\n");
-                sb.append(getDefaultTemplateProperties(refVariable, element));
+                sb.append(getDefaultTemplateProperties(refVariable, element)).append("\n");
             }
         }
         return sb.toString();
@@ -148,18 +144,25 @@ public class VaadinCodeGenerator {
         }
         String elementContent = getElementContent(element);
         if(StringUtils.isNotBlank(elementContent) && isHtmlContainer(element)){
-            sb.append(String.format("%s.setText(\"%s\");", refVariable, elementContent)).append("\n");
+            sb.append(String.format("%s.setText(\"%s\");", refVariable, elementContent.trim())).append("\n");
         }
-        if(! element.attributes().isEmpty()){
+        if(element.attributes().isEmpty()){
             if(element.attributes().get("parentId").isEmpty()){
-                sb.append(String.format("content.add(%s);", refVariable));
-            } else {
-                if(! element.attributes().get("compType").isEmpty() && isFlexCompType(elementMapper.get(element.attributes().get("compType")))){
-                    sb.append(String.format("%s.add(%s);", element.attributes().get("parentId"), refVariable));
-                }
+                sb.append(String.format("content.add(%s);", refVariable)).append("\n");
             }
+        } else {
             if(! element.attributes().get("value").isEmpty() && isHtmlContainer(element)){
                 sb.append(String.format("%s.setText(\"%s\");", refVariable, element.attributes().get("value").trim())).append("\n");
+            }
+            if(element.attributes().get("parentId").isEmpty()){
+                sb.append(String.format("content.add(%s);", refVariable)).append("\n");
+            } else {
+                if(! element.attributes().get("compType").isEmpty() && isFlexCompType(element)){
+                    sb.append(String.format("%s.add(%s);", element.attributes().get("parentId"), refVariable)).append("\n");
+                }
+            }
+            if(element.tagName().equalsIgnoreCase("input") && ! element.attributes().get("value").isEmpty() && isAbstractTextField(element)){
+                sb.append(String.format("%s.setValue(\"%s\");", refVariable, element.attributes().get("value"))).append("\n");
             }
         }
         return sb.toString();
@@ -178,8 +181,10 @@ public class VaadinCodeGenerator {
 
     public static String getElementByTagName(Element element){
         if(element.tagName().equalsIgnoreCase("input")){
-            if(! element.attributes().isEmpty() && ! element.attributes().get("type").isEmpty()){
+            if(! element.attributes().isEmpty() && element.attributes().hasKey("type")){
                 return element.attributes().get("type");
+            } else {
+                return "text";
             }
         }
         return element.tagName();
@@ -199,30 +204,50 @@ public class VaadinCodeGenerator {
     }
 
     public static String generateRefVariable(Element element){
+        String refVariable = "";
         String elementId = UUID.randomUUID().toString().split("-")[0].substring(0, 6).toString();
-        String refVariable = getRefVariablePrefix(element).concat(elementId.substring(0, 1).toUpperCase().concat(elementId.substring(1)));
+        String prefix = getRefVariablePrefix(element);
+        if(prefix == null){
+            System.out.println("Null element found: " + element.tagName());
+        } else {
+            refVariable = getRefVariablePrefix(element).concat(elementId.substring(0, 1).toUpperCase().concat(elementId.substring(1)));
+        }
         return refVariable;
     }
 
     public static String getRefVariablePrefix(Element element){
-        return switch (element.tagName()){
-            case "input" -> inputTypeList.get(element.attributes().get("type"));
-            default -> "comp";
-        };
+        if(element.tagName().equalsIgnoreCase("input")) {
+            if(element.attributes() != null && ! element.attributes().isEmpty()){
+                return element.attributes().hasKey("type") ? inputTypeList.get(element.attributes().get("type")) : inputTypeList.get("text");
+            }
+        }
+        return "comp";
     }
 
-    public static boolean isFlexCompType(Class<?> component) {
-        return  component != null ? Stream.of(component.getInterfaces())
-                .anyMatch(i -> i.getSimpleName().equalsIgnoreCase(FlexComponent.class.getSimpleName()) ||
-                        i.getSimpleName().equalsIgnoreCase(HasComponents.class.getSimpleName())): false;
+    public static boolean isFlexCompType(Element element) {
+        System.out.println("--- isFlexCompType ---" + element.tagName());
+        Class<?> component = elementMapper.get(element.attributes().get("compType"));
+        return  component != null && (FlexComponent.class.isAssignableFrom(component) ||
+                        HasOrderedComponents.class.isAssignableFrom(component) ||
+                        HasComponents.class.isAssignableFrom(component));
     }
 
     public static boolean isHtmlContainer(Element element){
+        System.out.println("--- isHtmlContainer ---" + element.tagName());
         String tag = getElementByTagName(element);
         Class<?> component = elementMapper.get(tag) != null ? elementMapper.get(tag): Component.class;
-        if(component != null && component.getSuperclass() != null){
-            return Stream.of(component.getSuperclass()).anyMatch(p -> p.getSimpleName().equalsIgnoreCase(HtmlContainer.class.getSimpleName()));
-        }
-        return false;
+        return component != null && HtmlContainer.class.isAssignableFrom(component) || HasText.class.isAssignableFrom(component);
+    }
+
+    public static boolean isAbstractTextField(Element element){
+        System.out.println("--- isAbstractField ---" + element.tagName());
+        String tag = getElementByTagName(element);
+        Class<?> component = elementMapper.get(tag) != null ? elementMapper.get(tag): Component.class;
+        return component != null && AbstractField.class.isAssignableFrom(component);
+    }
+
+    public static boolean skipElement(Element element){
+        List<String> tags = List.of("table", "svg", "br", "tbody", "script");
+        return tags.contains(element.tagName());
     }
 }
