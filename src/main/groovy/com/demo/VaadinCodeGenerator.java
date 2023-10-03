@@ -10,6 +10,7 @@ import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.select.Select;
+import com.vaadin.flow.component.textfield.PasswordField;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.PageTitle;
@@ -39,6 +40,7 @@ public class VaadinCodeGenerator {
     private static Map<String, String> inputTypeList = new HashMap<>() {{
         put("button", "btn");
         put("text", "txtField");
+        put("password", "passField");
         put("checkbox", "chkBox");
         put("submit", "btn");
         put("file", "fileUpload");
@@ -56,6 +58,7 @@ public class VaadinCodeGenerator {
 
         elementMapper.put("div", Div.class);
         elementMapper.put("text", TextField.class);
+        elementMapper.put("password", PasswordField.class);
         elementMapper.put("table", Grid.class);
         elementMapper.put("button", Button.class);
         elementMapper.put("span", Span.class);
@@ -75,6 +78,8 @@ public class VaadinCodeGenerator {
         elementMapper.put("i", elementMapper.get("svg"));
         elementMapper.put("a", Anchor.class);
         elementMapper.put("h2", elementMapper.get("span"));
+        elementMapper.put("h5", elementMapper.get("span"));
+        elementMapper.put("b", elementMapper.get("span"));
         elementMapper.put("form", elementMapper.get("div"));
     }
     public static String generateImports(){
@@ -109,17 +114,26 @@ public class VaadinCodeGenerator {
             }
             case "Component" -> {
                 System.out.println("TODO " + element.tagName());
+                sb.append("\n");
             }
             case "Anchor" -> {
                 sb.append(String.format("%s %s = new %s();", component, refVariable, component)).append("\n");
                 sb.append(String.format("%s.setTitle(\"%s\");", refVariable, element.attributes().get("title"))).append("\n");
                 sb.append(String.format("%s.setHref(\"%s\");", refVariable, element.attributes().get("href"))).append("\n");
                 sb.append(String.format("%s.setTarget(\"%s\");", refVariable, element.attributes().get("target"))).append("\n");
+                sb.append(getDefaultTemplateProperties(refVariable, element)).append("\n");
+//                if(element.attributes().get("parentId").isEmpty()){
+//                    sb.append(String.format("content.add(%s);", refVariable)).append("\n");
+//                } else {
+//                    if(! element.attributes().get("compType").isEmpty() && isFlexCompType(element)){
+//                        sb.append(String.format("%s.add(%s);", element.attributes().get("parentId"), refVariable)).append("\n");
+//                    }
+//                }
             }
             case "Icon" -> {
                 imports.add(elementMapper.get("vaadinIcon").getCanonicalName());
                 sb.append(String.format("%s %s = new %s(%s.QUESTION_CIRCLE_O);", component, refVariable, component, elementMapper.get("vaadinIcon").getSimpleName())).append("\n");
-                sb.append(getDefaultTemplateProperties(refVariable, element));
+                sb.append(getDefaultTemplateProperties(refVariable, element)).append("\n");
             }
             default -> {
                 sb.append(String.format("%s %s = new %s();", component, refVariable, component)).append("\n");
@@ -225,7 +239,6 @@ public class VaadinCodeGenerator {
     }
 
     public static boolean isFlexCompType(Element element) {
-        System.out.println("--- isFlexCompType ---" + element.tagName());
         Class<?> component = elementMapper.get(element.attributes().get("compType"));
         return  component != null && (FlexComponent.class.isAssignableFrom(component) ||
                         HasOrderedComponents.class.isAssignableFrom(component) ||
@@ -233,14 +246,12 @@ public class VaadinCodeGenerator {
     }
 
     public static boolean isHtmlContainer(Element element){
-        System.out.println("--- isHtmlContainer ---" + element.tagName());
         String tag = getElementByTagName(element);
         Class<?> component = elementMapper.get(tag) != null ? elementMapper.get(tag): Component.class;
         return component != null && HtmlContainer.class.isAssignableFrom(component) || HasText.class.isAssignableFrom(component);
     }
 
     public static boolean isAbstractTextField(Element element){
-        System.out.println("--- isAbstractField ---" + element.tagName());
         String tag = getElementByTagName(element);
         Class<?> component = elementMapper.get(tag) != null ? elementMapper.get(tag): Component.class;
         return component != null && AbstractField.class.isAssignableFrom(component);
