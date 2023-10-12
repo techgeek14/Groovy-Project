@@ -13,7 +13,7 @@ public class $className extends HorizontalLayout {
 
    @PostConstruct
    void initComponent() {
-    $components
-    add(content);
+        $components
+       add(content);
    }
 }

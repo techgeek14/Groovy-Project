@@ -1,5 +1,19 @@
 package com.demo;
 
+import com.github.javaparser.JavaParser;
+import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.ast.ImportDeclaration;
+import com.github.javaparser.ast.Modifier;
+import com.github.javaparser.ast.NodeList;
+import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
+import com.github.javaparser.ast.body.MethodDeclaration;
+import com.github.javaparser.ast.expr.*;
+import com.github.javaparser.ast.stmt.BlockStmt;
+import com.github.javaparser.ast.stmt.ExpressionStmt;
+import com.github.javaparser.ast.stmt.ReturnStmt;
+import com.github.javaparser.ast.stmt.Statement;
+import com.github.javaparser.ast.type.Type;
+import com.github.javaparser.ast.type.TypeParameter;
 import com.vaadin.flow.component.*;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.grid.Grid;
@@ -9,6 +23,7 @@ import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
+import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.textfield.PasswordField;
 import com.vaadin.flow.component.textfield.TextArea;
@@ -16,6 +31,7 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import org.apache.commons.lang3.StringUtils;
+import org.checkerframework.checker.units.qual.N;
 import org.jsoup.nodes.Element;
 import org.jsoup.nodes.TextNode;
 
@@ -34,8 +50,6 @@ public class VaadinCodeGenerator {
     public static List<String> headerColumns = List.of("col1", "col2", "col3");
 
     public static StringBuilder components = new StringBuilder();
-
-    public static Map<String, String> refVariableMap = new LinkedHashMap<>();
 
     private static Map<String, String> inputTypeList = new HashMap<>() {{
         put("button", "btn");
@@ -118,17 +132,10 @@ public class VaadinCodeGenerator {
             }
             case "Anchor" -> {
                 sb.append(String.format("%s %s = new %s();", component, refVariable, component)).append("\n");
+                sb.append(getDefaultTemplateProperties(refVariable, element)).append("\n");
                 sb.append(String.format("%s.setTitle(\"%s\");", refVariable, element.attributes().get("title"))).append("\n");
                 sb.append(String.format("%s.setHref(\"%s\");", refVariable, element.attributes().get("href"))).append("\n");
                 sb.append(String.format("%s.setTarget(\"%s\");", refVariable, element.attributes().get("target"))).append("\n");
-                sb.append(getDefaultTemplateProperties(refVariable, element)).append("\n");
-//                if(element.attributes().get("parentId").isEmpty()){
-//                    sb.append(String.format("content.add(%s);", refVariable)).append("\n");
-//                } else {
-//                    if(! element.attributes().get("compType").isEmpty() && isFlexCompType(element)){
-//                        sb.append(String.format("%s.add(%s);", element.attributes().get("parentId"), refVariable)).append("\n");
-//                    }
-//                }
             }
             case "Icon" -> {
                 imports.add(elementMapper.get("vaadinIcon").getCanonicalName());
@@ -260,5 +267,106 @@ public class VaadinCodeGenerator {
     public static boolean skipElement(Element element){
         List<String> tags = List.of("table", "svg", "br", "tbody", "script");
         return tags.contains(element.tagName());
+    }
+
+    public static String getJavaContent() {
+        CompilationUnit cu = new CompilationUnit();
+        cu.setPackageDeclaration("com.example.application.views.main");
+//        cu.setImport(0, new ImportDeclaration("com.vaadin.flow.component.orderedlayout.VerticalLayout", false,false));
+
+        ClassOrInterfaceDeclaration book = cu.addClass("TestScreen");
+        book.addField("String", "title");
+        book.addField("Person", "author");
+
+        book.addAnnotation(new JavaParser().parseAnnotation("@Route(value = \"testScreen\")").getResult().get());
+
+        book.addConstructor(Modifier.publicModifier().getKeyword())
+                .addParameter("String", "title")
+                .addParameter("Person", "author")
+                .setBody(new BlockStmt()
+                        .addStatement(new ExpressionStmt(new AssignExpr(
+                                new FieldAccessExpr(new ThisExpr(), "title"), new NameExpr("title"),
+                                AssignExpr.Operator.ASSIGN)))
+                        .addStatement(new ExpressionStmt(new AssignExpr(
+                                new FieldAccessExpr(new ThisExpr(), "author"),
+                                new NameExpr("author"),
+                                AssignExpr.Operator.ASSIGN))));
+
+        book.addMethod("getTitle", Modifier.publicModifier().getKeyword()).setBody(
+                new BlockStmt().addStatement(new ReturnStmt(new NameExpr("title"))));
+
+        book.addMethod("getAuthor", Modifier.publicModifier().getKeyword()).setBody(
+                new BlockStmt().addStatement(new ReturnStmt(new NameExpr("author"))));
+
+        book.addMethod("buildComponent").setBody(
+                new BlockStmt().addStatement(new ExpressionStmt(
+                        new NameExpr("Integer k = new Integer()")
+                ))
+        );
+        System.out.println(cu.toString());
+        return cu.toString();
+    }
+
+    public static void main(String[] args) {
+        CompilationUnit cu = new CompilationUnit();
+
+        cu.setPackageDeclaration("com.example.application.views.main");
+//        cu.setImport(0, new ImportDeclaration("com.vaadin.flow.component.orderedlayout.VerticalLayout", false,false));
+
+        ClassOrInterfaceDeclaration book = cu.addClass("TestScreen");
+        book.addField("String", "title");
+        book.addField("Person", "author");
+
+        book.addAnnotation(new JavaParser().parseAnnotation("@Route(value = \"testScreen\")").getResult().get());
+
+        book.addConstructor(Modifier.publicModifier().getKeyword())
+                .addParameter("String", "title")
+                .addParameter("Person", "author")
+                .setBody(new BlockStmt()
+                        .addStatement(new ExpressionStmt(new AssignExpr(
+                                new FieldAccessExpr(new ThisExpr(), "title"), new NameExpr("title"),
+                                AssignExpr.Operator.ASSIGN)))
+                        .addStatement(new ExpressionStmt(new AssignExpr(
+                                new FieldAccessExpr(new ThisExpr(), "author"),
+                                new NameExpr("author"),
+                                AssignExpr.Operator.ASSIGN))));
+
+        book.addMethod("getTitle", Modifier.publicModifier().getKeyword()).setBody(
+                new BlockStmt().addStatement(new ReturnStmt(new NameExpr("title"))));
+
+        book.addMethod("getAuthor", Modifier.publicModifier().getKeyword()).setBody(
+                new BlockStmt().addStatement(new ReturnStmt(new NameExpr("author"))));
+
+        book.addMethod("buildComponent");
+
+        Optional<MethodDeclaration> buildComponent = book.getMethodsByName("buildComponent").stream().findFirst();
+
+        buildComponent.ifPresent(methodDeclaration -> methodDeclaration.getBody().ifPresent(body -> {
+            ObjectCreationExpr object = new ObjectCreationExpr();
+            object.setType(HorizontalLayout.class);
+
+            body.addStatement(new ExpressionStmt(new AssignExpr(
+                    new VariableDeclarationExpr(object.getType(), "layout"),
+                    object,
+                    AssignExpr.Operator.ASSIGN)));
+
+            Arrays.stream(HorizontalLayout.class.getMethods()).collect(Collectors.toList()).stream()
+                    .filter(x -> x.getName().equalsIgnoreCase("setId"))
+                    .forEach(x-> {
+                System.out.println(x.getName());
+            });
+            MethodCallExpr method = new MethodCallExpr(new NameExpr("layout"), "setId");
+            method.addArgument(new StringLiteralExpr("12"));
+
+            ObjectCreationExpr grid = new ObjectCreationExpr();
+            grid.setType(Grid.class);
+
+            String typeGeneric = String.format("%s<%s> %s", Grid.class.getSimpleName(), String.class.getSimpleName(), "gird");
+
+            body.addStatement(new ExpressionStmt(new AssignExpr(new NameExpr(typeGeneric), grid, AssignExpr.Operator.ASSIGN)));
+            body.addStatement(method);
+            body.addStatement(new FieldAccessExpr(new NameExpr("layout"), "setStyle"));
+        }));
+        System.out.println(cu.toString());
     }
 }

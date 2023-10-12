@@ -1,6 +1,5 @@
 package com.demo
 
-
 import org.apache.commons.lang3.StringUtils
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
@@ -54,7 +53,7 @@ println content.toString()
 def path = "D:\\my-todo\\src\\main\\java\\com\\example\\application\\views\\main\\${className}.java";
 try {
     def file = new File(path) // Create a new File object
-    file.text = content
+    file.text = VaadinCodeGenerator.getJavaContent();
     println "Data written to $path successfully."
 } catch (Exception e) {
     println "An error occurred: $e"

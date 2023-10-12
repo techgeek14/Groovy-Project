@@ -20,6 +20,8 @@ dependencies {
     // https://mvnrepository.com/artifact/org.jsoup/jsoup html parser
     implementation 'org.jsoup:jsoup:1.16.1'
     implementation 'com.vaadin:vaadin-core:24.1.10'
+    // https://mvnrepository.com/artifact/com.github.javaparser/javaparser-core
+    implementation 'com.github.javaparser:javaparser-core:3.25.1'
     testImplementation 'org.junit.jupiter:junit-jupiter'
 }
 
