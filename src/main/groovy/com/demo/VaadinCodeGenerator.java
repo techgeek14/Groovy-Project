@@ -2,7 +2,6 @@ package com.demo;
 
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ast.CompilationUnit;
-import com.github.javaparser.ast.ImportDeclaration;
 import com.github.javaparser.ast.Modifier;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
@@ -11,9 +10,6 @@ import com.github.javaparser.ast.expr.*;
 import com.github.javaparser.ast.stmt.BlockStmt;
 import com.github.javaparser.ast.stmt.ExpressionStmt;
 import com.github.javaparser.ast.stmt.ReturnStmt;
-import com.github.javaparser.ast.stmt.Statement;
-import com.github.javaparser.ast.type.Type;
-import com.github.javaparser.ast.type.TypeParameter;
 import com.vaadin.flow.component.*;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.grid.Grid;
@@ -23,7 +19,6 @@ import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
-import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.textfield.PasswordField;
 import com.vaadin.flow.component.textfield.TextArea;
@@ -31,13 +26,12 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import org.apache.commons.lang3.StringUtils;
-import org.checkerframework.checker.units.qual.N;
 import org.jsoup.nodes.Element;
 import org.jsoup.nodes.TextNode;
 
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import static com.demo.JavaParserUtil.*;
 
 public class VaadinCodeGenerator {
     public static Map<String, String> map = new HashMap<>();
@@ -270,46 +264,31 @@ public class VaadinCodeGenerator {
     }
 
     public static String getJavaContent() {
-        CompilationUnit cu = new CompilationUnit();
-        cu.setPackageDeclaration("com.example.application.views.main");
-//        cu.setImport(0, new ImportDeclaration("com.vaadin.flow.component.orderedlayout.VerticalLayout", false,false));
+        addPackage("com.example.application.views.main", "TestScreen");
+        Set<String> imports = new HashSet<>();
 
-        ClassOrInterfaceDeclaration book = cu.addClass("TestScreen");
-        book.addField("String", "title");
-        book.addField("Person", "author");
+        Map<String, String> map = new HashMap<>();
+        map.put("Integer", "empId");
+        map.put("String", "title");
 
-        book.addAnnotation(new JavaParser().parseAnnotation("@Route(value = \"testScreen\")").getResult().get());
+        addField(map, "TestScreen");
+        addConstructor(map, "TestScreen");
+        MethodDeclaration buildComponent =  createMethod("buildComponent", "TestScreen");
+        buildComponent.getBody().ifPresent(x -> {
+            imports.add(HorizontalLayout.class.getCanonicalName());
+            x.addStatement(createInstance(HorizontalLayout.class, "layout"));
+            x.addStatement(accessMethod("layout", null, "setId", List.of(new StringLiteralExpr("12"))));
+            MethodCallExpr elementMethod = accessMethod("layout", null, "getElement", null);
+            MethodCallExpr setAttrMethod = accessMethod("layout", elementMethod.getNameAsString(), "setAttribute", List.of(new StringLiteralExpr("style"), new StringLiteralExpr("color: red;")));
+            x.addStatement(setAttrMethod);
+        });
 
-        book.addConstructor(Modifier.publicModifier().getKeyword())
-                .addParameter("String", "title")
-                .addParameter("Person", "author")
-                .setBody(new BlockStmt()
-                        .addStatement(new ExpressionStmt(new AssignExpr(
-                                new FieldAccessExpr(new ThisExpr(), "title"), new NameExpr("title"),
-                                AssignExpr.Operator.ASSIGN)))
-                        .addStatement(new ExpressionStmt(new AssignExpr(
-                                new FieldAccessExpr(new ThisExpr(), "author"),
-                                new NameExpr("author"),
-                                AssignExpr.Operator.ASSIGN))));
-
-        book.addMethod("getTitle", Modifier.publicModifier().getKeyword()).setBody(
-                new BlockStmt().addStatement(new ReturnStmt(new NameExpr("title"))));
-
-        book.addMethod("getAuthor", Modifier.publicModifier().getKeyword()).setBody(
-                new BlockStmt().addStatement(new ReturnStmt(new NameExpr("author"))));
-
-        book.addMethod("buildComponent").setBody(
-                new BlockStmt().addStatement(new ExpressionStmt(
-                        new NameExpr("Integer k = new Integer()")
-                ))
-        );
-        System.out.println(cu.toString());
-        return cu.toString();
+        addImports(imports, "TestScreen");
+        return getContent("TestScreen");
     }
 
     public static void main(String[] args) {
         CompilationUnit cu = new CompilationUnit();
-
         cu.setPackageDeclaration("com.example.application.views.main");
 //        cu.setImport(0, new ImportDeclaration("com.vaadin.flow.component.orderedlayout.VerticalLayout", false,false));
 
@@ -355,6 +334,7 @@ public class VaadinCodeGenerator {
                     .forEach(x-> {
                 System.out.println(x.getName());
             });
+
             MethodCallExpr method = new MethodCallExpr(new NameExpr("layout"), "setId");
             method.addArgument(new StringLiteralExpr("12"));
 
@@ -363,9 +343,29 @@ public class VaadinCodeGenerator {
 
             String typeGeneric = String.format("%s<%s> %s", Grid.class.getSimpleName(), String.class.getSimpleName(), "gird");
 
-            body.addStatement(new ExpressionStmt(new AssignExpr(new NameExpr(typeGeneric), grid, AssignExpr.Operator.ASSIGN)));
-            body.addStatement(method);
-            body.addStatement(new FieldAccessExpr(new NameExpr("layout"), "setStyle"));
+//            body.addStatement(new ExpressionStmt(new AssignExpr(new NameExpr(typeGeneric), grid, AssignExpr.Operator.ASSIGN)));
+//            body.addStatement(method);
+//            body.addStatement(new FieldAccessExpr(new NameExpr("layout"), "setStyle"));
+
+//            ArrayCreationExpr arr = new ArrayCreationExpr();
+//            ArrayInitializerExpr ini = new ArrayInitializerExpr();
+            NodeList list = new NodeList();
+//            list.add(new NameExpr("apple"));
+//            list.add(new NameExpr("mango"));
+//            ini.setValues(list);
+//            arr.setInitializer(ini);
+//            arr.setElementType("String");
+
+            ArrayInitializerExpr arrayInitializerExpr = new ArrayInitializerExpr();
+            list.add(new StringLiteralExpr("ClassA"));
+            list.add(new StringLiteralExpr("ClassB"));
+
+            arrayInitializerExpr.setValues(list);
+            arrayInitializerExpr.getValues().forEach(x -> {
+                System.out.println(x);
+            });
+//            body.addStatement(arrayInitializerExpr);
+
         }));
         System.out.println(cu.toString());
     }

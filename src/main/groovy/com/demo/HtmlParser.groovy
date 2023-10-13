@@ -48,7 +48,7 @@ def binding =
 def template = new File('templates/VaadinTemplate.template')
 def engine = new groovy.text.GStringTemplateEngine()
 def content = engine.createTemplate(template).make(binding)
-println content.toString()
+//println content.toString()
 
 def path = "D:\\my-todo\\src\\main\\java\\com\\example\\application\\views\\main\\${className}.java";
 try {
