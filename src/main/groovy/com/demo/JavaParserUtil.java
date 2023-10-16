@@ -12,10 +12,15 @@ import com.github.javaparser.ast.expr.*;
 import com.github.javaparser.ast.stmt.BlockStmt;
 import com.github.javaparser.ast.stmt.ExpressionStmt;
 import com.github.javaparser.ast.stmt.Statement;
+import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.ivy.util.CollectionUtils;
 
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class JavaParserUtil {
 
@@ -108,26 +113,52 @@ public class JavaParserUtil {
         return null;
     }
 
-    public static ExpressionStmt createInstance(Class<?> instance, String referenceVariable) {
+    public static ExpressionStmt createInstance(Class<?> instance, Class<?> typeGeneric, String referenceVariable, Expression arg) {
         ExpressionStmt statement = new ExpressionStmt();
         ObjectCreationExpr object = new ObjectCreationExpr();
         object.setType(instance);
-        statement.setExpression(new AssignExpr(
-                new VariableDeclarationExpr(object.getType(), referenceVariable),
-                object,
-                AssignExpr.Operator.ASSIGN));
+
+        AssignExpr assignExpr = new AssignExpr();
+        statement.setExpression(assignExpr);
+        assignExpr.setOperator(AssignExpr.Operator.ASSIGN);
+
+        if (typeGeneric != null) {
+            String target = String.format("%s<%s> %s", instance.getSimpleName(), typeGeneric.getSimpleName(), referenceVariable);
+            assignExpr.setTarget(new NameExpr(target));
+            assignExpr.setValue(object);
+        } else {
+            assignExpr.setTarget(new VariableDeclarationExpr(object.getType(), referenceVariable));
+            assignExpr.setValue(object);
+        }
+
+        if(arg != null) {
+            NodeList<Expression> nodeList = new NodeList<>();
+            nodeList.add(arg);
+            object.setArguments(nodeList);
+        }
         return statement;
     }
 
-    public static MethodCallExpr accessMethod(String accessorName, String method1, String method2, List<Expression> arguments) {
-        MethodCallExpr methodCallExpr = StringUtils.isBlank(method1) ? new MethodCallExpr(new NameExpr(accessorName), method2)
-                : new MethodCallExpr(new FieldAccessExpr(new NameExpr(accessorName), method1 + "()"), method2);
+    public static Expression accessField(Expression arg1, String arg2){
+        return new FieldAccessExpr(arg1, arg2);
+    }
 
-        if (arguments != null) {
-            arguments.forEach(exp -> {
-                methodCallExpr.addArgument(exp);
-            });
+    public static Expression convertStringLiteralExpToString(List<StringLiteralExpr> strExpList){
+        return new NameExpr(strExpList.stream().map(StringLiteralExpr::toString).collect(Collectors.joining(",")));
+    }
+
+    public static Expression accessMethod(Map<String, List<Expression>> map, String accessorName) {
+        MethodCallExpr expr = new MethodCallExpr();
+        String ref = accessorName;
+        for (Map.Entry<String, List<Expression>> entry : map.entrySet()) {
+            expr = new MethodCallExpr(new NameExpr(ref), entry.getKey());
+            if (entry.getValue() != null && entry.getValue().size() > 0) {
+                for (Expression arg : entry.getValue()) {
+                    expr.addArgument(arg);
+                }
+            }
+            ref = expr.toString();
         }
-        return methodCallExpr;
+        return expr;
     }
 }

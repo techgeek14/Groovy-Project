@@ -6,10 +6,14 @@ import com.github.javaparser.ast.Modifier;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
+import com.github.javaparser.ast.body.Parameter;
+import com.github.javaparser.ast.body.VariableDeclarator;
 import com.github.javaparser.ast.expr.*;
 import com.github.javaparser.ast.stmt.BlockStmt;
 import com.github.javaparser.ast.stmt.ExpressionStmt;
+import com.github.javaparser.ast.stmt.LabeledStmt;
 import com.github.javaparser.ast.stmt.ReturnStmt;
+import com.github.javaparser.ast.type.*;
 import com.vaadin.flow.component.*;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.grid.Grid;
@@ -23,9 +27,11 @@ import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.textfield.PasswordField;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import org.apache.commons.lang3.StringUtils;
+import org.checkerframework.checker.units.qual.N;
 import org.jsoup.nodes.Element;
 import org.jsoup.nodes.TextNode;
 
@@ -276,11 +282,25 @@ public class VaadinCodeGenerator {
         MethodDeclaration buildComponent =  createMethod("buildComponent", "TestScreen");
         buildComponent.getBody().ifPresent(x -> {
             imports.add(HorizontalLayout.class.getCanonicalName());
-            x.addStatement(createInstance(HorizontalLayout.class, "layout"));
-            x.addStatement(accessMethod("layout", null, "setId", List.of(new StringLiteralExpr("12"))));
-            MethodCallExpr elementMethod = accessMethod("layout", null, "getElement", null);
-            MethodCallExpr setAttrMethod = accessMethod("layout", elementMethod.getNameAsString(), "setAttribute", List.of(new StringLiteralExpr("style"), new StringLiteralExpr("color: red;")));
-            x.addStatement(setAttrMethod);
+            imports.add(Div.class.getCanonicalName());
+            imports.add(Grid.class.getCanonicalName());
+            imports.add(Icon.class.getCanonicalName());
+            imports.add(VaadinIcon.class.getCanonicalName());
+
+            x.addStatement(createInstance(HorizontalLayout.class,null, "layout", null));
+            x.addStatement(createInstance(Div.class,null, "childDiv", null));
+
+            Map<String, List<Expression>> m1 = new LinkedHashMap<>();
+            m1.put("add", List.of(new NameExpr("childDiv")));
+            x.addStatement(accessMethod(m1, "layout"));
+            x.addStatement(createInstance(Grid.class, String.class, "grid", null));
+
+            m1.clear();;
+            m1.put("getElement", List.of());
+            m1.put("setAttribute", List.of(new StringLiteralExpr("style"), new StringLiteralExpr("color: red;")));
+            x.addStatement(accessMethod(m1, "layout"));
+
+            x.addStatement(createInstance(Icon.class, null, "icon", accessField(new NameExpr(VaadinIcon.class.getSimpleName()), "QUESTION_CIRCLE_O")));
         });
 
         addImports(imports, "TestScreen");
@@ -338,34 +358,30 @@ public class VaadinCodeGenerator {
             MethodCallExpr method = new MethodCallExpr(new NameExpr("layout"), "setId");
             method.addArgument(new StringLiteralExpr("12"));
 
-            ObjectCreationExpr grid = new ObjectCreationExpr();
-            grid.setType(Grid.class);
+            LambdaExpr lambdaExpr = new LambdaExpr();
+            lambdaExpr.setParameters(NodeList.nodeList(new Parameter(new UnknownType(), "x")));
+            lambdaExpr.setEnclosingParameters(true);
+            lambdaExpr.setBody(new ExpressionStmt(new NameExpr("x.setHeader()")));
+            body.addStatement(lambdaExpr);
 
-            String typeGeneric = String.format("%s<%s> %s", Grid.class.getSimpleName(), String.class.getSimpleName(), "gird");
+            body.addStatement(createInstance(Icon.class, null, "icon", accessField(new NameExpr(VaadinIcon.class.getSimpleName()), "QUESTION_CIRCLE_O")));
+            StringLiteralExpr exp1 =  new StringLiteralExpr("s1");
+            StringLiteralExpr exp2 =  new StringLiteralExpr("s2");
+            List<StringLiteralExpr> exps = List.of(exp1, exp2);
 
-//            body.addStatement(new ExpressionStmt(new AssignExpr(new NameExpr(typeGeneric), grid, AssignExpr.Operator.ASSIGN)));
-//            body.addStatement(method);
-//            body.addStatement(new FieldAccessExpr(new NameExpr("layout"), "setStyle"));
+            body.addStatement(createInstance(Grid.class, String.class, "grid", null));
+//            body.addStatement(accessMethod("grid", null, "setItems", List.of(convertStringLiteralExpToString(exps))));
 
-//            ArrayCreationExpr arr = new ArrayCreationExpr();
-//            ArrayInitializerExpr ini = new ArrayInitializerExpr();
-            NodeList list = new NodeList();
-//            list.add(new NameExpr("apple"));
-//            list.add(new NameExpr("mango"));
-//            ini.setValues(list);
-//            arr.setInitializer(ini);
-//            arr.setElementType("String");
+            Map<String, List<Expression>> map = Map.of("setItems", List.of(convertStringLiteralExpToString(exps)));
+            Expression expression = accessMethod(map, "grid");
+            body.addStatement(expression);
 
-            ArrayInitializerExpr arrayInitializerExpr = new ArrayInitializerExpr();
-            list.add(new StringLiteralExpr("ClassA"));
-            list.add(new StringLiteralExpr("ClassB"));
+            body.addStatement(createInstance(HorizontalLayout.class,null, "layout", null));
+            Map<String, List<Expression>> map1 = new LinkedHashMap<>();
+            map1.put("getElement", List.of());
+            map1.put("setAttribute", List.of(new StringLiteralExpr("style"), new StringLiteralExpr("color: red;")));
 
-            arrayInitializerExpr.setValues(list);
-            arrayInitializerExpr.getValues().forEach(x -> {
-                System.out.println(x);
-            });
-//            body.addStatement(arrayInitializerExpr);
-
+            body.addStatement(accessMethod(map1, "layout"));
         }));
         System.out.println(cu.toString());
     }
