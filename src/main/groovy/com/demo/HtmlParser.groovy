@@ -12,6 +12,7 @@ Element htmlElement = doc;
 
 
 htmlElement.body().children().forEach {element -> {
+    println("new Element");
     processDomElement(element, "");
 }}
 
@@ -35,7 +36,7 @@ void processDomElement(Element element, String parentId) {
     }
 }
 
-def className = "TestScreen";
+def className = "Login";
 
 def binding =
         ["packageInfo": "com.example.application.views.main",

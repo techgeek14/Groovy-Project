@@ -31,13 +31,16 @@ import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import org.apache.commons.lang3.StringUtils;
+import org.atmosphere.inject.PostConstructIntrospector;
 import org.checkerframework.checker.units.qual.N;
 import org.jsoup.nodes.Element;
 import org.jsoup.nodes.TextNode;
 
+import java.lang.annotation.Annotation;
 import java.util.*;
 import java.util.stream.Collectors;
 import static com.demo.JavaParserUtil.*;
+import static com.demo.VaadinTemplate.*;
 
 public class VaadinCodeGenerator {
     public static Map<String, String> map = new HashMap<>();
@@ -109,44 +112,59 @@ public class VaadinCodeGenerator {
             StringBuilder sb = new StringBuilder();
             Class<?> compClass = elementMapper.get(getElementByTagName(element)) != null ? elementMapper.get(getElementByTagName(element)) : elementMapper.get("default");
             String key = compClass.getSimpleName();
-            sb.append(generateComponentTemplate(key, refVariable, element));
+            sb.append(generateComponentTemplate(compClass, refVariable, element));
             imports.add(compClass.getCanonicalName());
             components.append(sb);
         }
     }
 
-    public static String generateComponentTemplate(String component, String refVariable, Element element) {
+    public static String generateComponentTemplate(Class<?> compClass, String refVariable, Element element) {
+        String component = compClass.getSimpleName();
         StringBuilder sb = new StringBuilder();
-        switch (component) {
-            case "Grid" -> {
-                sb.append(String.format("%s<String> %s = new %s();", component, refVariable, component)).append("\n");
-                sb.append(getDefaultTemplateProperties(refVariable, element));
-                sb.append(String.format("%s.setItems(%s);", refVariable, buildListItems())).append("\n");
-                headerColumns.forEach(col -> {
-                    sb.append(String.format("%s.addColumn(x -> x).setHeader(\"%s\");", refVariable, col)).append("\n");
-                });
-            }
-            case "Component" -> {
-                System.out.println("TODO " + element.tagName());
-                sb.append("\n");
-            }
-            case "Anchor" -> {
-                sb.append(String.format("%s %s = new %s();", component, refVariable, component)).append("\n");
-                sb.append(getDefaultTemplateProperties(refVariable, element)).append("\n");
-                sb.append(String.format("%s.setTitle(\"%s\");", refVariable, element.attributes().get("title"))).append("\n");
-                sb.append(String.format("%s.setHref(\"%s\");", refVariable, element.attributes().get("href"))).append("\n");
-                sb.append(String.format("%s.setTarget(\"%s\");", refVariable, element.attributes().get("target"))).append("\n");
-            }
-            case "Icon" -> {
-                imports.add(elementMapper.get("vaadinIcon").getCanonicalName());
-                sb.append(String.format("%s %s = new %s(%s.QUESTION_CIRCLE_O);", component, refVariable, component, elementMapper.get("vaadinIcon").getSimpleName())).append("\n");
-                sb.append(getDefaultTemplateProperties(refVariable, element)).append("\n");
-            }
-            default -> {
-                sb.append(String.format("%s %s = new %s();", component, refVariable, component)).append("\n");
-                sb.append(getDefaultTemplateProperties(refVariable, element)).append("\n");
-            }
-        }
+        VaadinTemplate.init("Login", "com.example.application.views.main");
+        getClassBuilder("Login").ifPresent(builder -> {
+            builder.getMethodsByName("buildComponent").get(0).getBody()
+                    .ifPresent(body -> {
+                        switch (component) {
+                            case "Grid" -> {
+                                sb.append(String.format("%s<String> %s = new %s();", component, refVariable, component)).append("\n");
+                                sb.append(getDefaultTemplateProperties(refVariable, element));
+                                sb.append(String.format("%s.setItems(%s);", refVariable, buildListItems())).append("\n");
+                                headerColumns.forEach(col -> {
+                                    sb.append(String.format("%s.addColumn(x -> x).setHeader(\"%s\");", refVariable, col)).append("\n");
+                                });
+                            }
+                            case "Component" -> {
+                                System.out.println("TODO " + element.tagName());
+                                sb.append("\n");
+                            }
+                            case "Anchor" -> {
+                                sb.append(String.format("%s %s = new %s();", component, refVariable, component)).append("\n");
+                                sb.append(getDefaultTemplateProperties(refVariable, element)).append("\n");
+                                sb.append(String.format("%s.setTitle(\"%s\");", refVariable, element.attributes().get("title"))).append("\n");
+                                sb.append(String.format("%s.setHref(\"%s\");", refVariable, element.attributes().get("href"))).append("\n");
+                                sb.append(String.format("%s.setTarget(\"%s\");", refVariable, element.attributes().get("target"))).append("\n");
+                            }
+                            case "Icon" -> {
+                                imports.add(elementMapper.get("vaadinIcon").getCanonicalName());
+                                sb.append(String.format("%s %s = new %s(%s.QUESTION_CIRCLE_O);", component, refVariable, component, elementMapper.get("vaadinIcon").getSimpleName())).append("\n");
+                                sb.append(getDefaultTemplateProperties(refVariable, element)).append("\n");
+                            }
+                            default -> {
+                                body.addStatement(createInstance(compClass, null, refVariable, null));
+                                addImports(Set.of(compClass.getCanonicalName()), "Login");
+                                sb.append(String.format("%s %s = new %s();", component, refVariable, component)).append("\n");
+                                sb.append(getDefaultTemplateProperties(refVariable, element)).append("\n");
+                            }
+                        }
+                        if(element.attributes().get("parentId").isEmpty()) {
+                            body.addStatement(accessMethod(Map.of("add", List.of(new NameExpr(refVariable))), ROOT));
+                        }
+                    });
+        });
+
+
+
         return sb.toString();
     }
 
@@ -270,41 +288,10 @@ public class VaadinCodeGenerator {
     }
 
     public static String getJavaContent() {
-        addPackage("com.example.application.views.main", "TestScreen");
-        Set<String> imports = new HashSet<>();
-
-        Map<String, String> map = new HashMap<>();
-        map.put("Integer", "empId");
-        map.put("String", "title");
-
-        addField(map, "TestScreen");
-        addConstructor(map, "TestScreen");
-        MethodDeclaration buildComponent =  createMethod("buildComponent", "TestScreen");
-        buildComponent.getBody().ifPresent(x -> {
-            imports.add(HorizontalLayout.class.getCanonicalName());
-            imports.add(Div.class.getCanonicalName());
-            imports.add(Grid.class.getCanonicalName());
-            imports.add(Icon.class.getCanonicalName());
-            imports.add(VaadinIcon.class.getCanonicalName());
-
-            x.addStatement(createInstance(HorizontalLayout.class,null, "layout", null));
-            x.addStatement(createInstance(Div.class,null, "childDiv", null));
-
-            Map<String, List<Expression>> m1 = new LinkedHashMap<>();
-            m1.put("add", List.of(new NameExpr("childDiv")));
-            x.addStatement(accessMethod(m1, "layout"));
-            x.addStatement(createInstance(Grid.class, String.class, "grid", null));
-
-            m1.clear();;
-            m1.put("getElement", List.of());
-            m1.put("setAttribute", List.of(new StringLiteralExpr("style"), new StringLiteralExpr("color: red;")));
-            x.addStatement(accessMethod(m1, "layout"));
-
-            x.addStatement(createInstance(Icon.class, null, "icon", accessField(new NameExpr(VaadinIcon.class.getSimpleName()), "QUESTION_CIRCLE_O")));
-        });
-
-        addImports(imports, "TestScreen");
-        return getContent("TestScreen");
+        String className = "Login";
+        String packageName = "com.example.application.views.main";
+        VaadinTemplate.init(className, packageName);
+        return getContent(className);
     }
 
     public static void main(String[] args) {
@@ -316,7 +303,7 @@ public class VaadinCodeGenerator {
         book.addField("String", "title");
         book.addField("Person", "author");
 
-        book.addAnnotation(new JavaParser().parseAnnotation("@Route(value = \"testScreen\")").getResult().get());
+//        book.addAnnotation(new JavaParser().parseAnnotation("@Route(value = \"testScreen\")").getResult().get());
 
         book.addConstructor(Modifier.publicModifier().getKeyword())
                 .addParameter("String", "title")
@@ -382,7 +369,32 @@ public class VaadinCodeGenerator {
             map1.put("setAttribute", List.of(new StringLiteralExpr("style"), new StringLiteralExpr("color: red;")));
 
             body.addStatement(accessMethod(map1, "layout"));
+
+            ObjectCreationExpr obc =new ObjectCreationExpr();
+            obc.setType(HorizontalLayout.class);
+            AssignExpr as = new AssignExpr();
+            as.setTarget(new NameExpr("root"));
+            as.setValue(obc);
+            as.setOperator(AssignExpr.Operator.ASSIGN);
+            body.addStatement(as);
+
+//            MethodCallExpr mx = new MethodCallExpr();
+//            mx.setName("add");
+//            mx.setArguments(NodeList.nodeList(new NameExpr("root")));
+//            body.addStatement(mx);
+
+            body.addStatement(accessMethod("add", List.of(new NameExpr("root"))));
         }));
+
+        Map<String, Expression> m2 = new LinkedHashMap<>();
+        m2.put("value", new StringLiteralExpr("/home"));
+        m2.put("layout", new NameExpr("UI.class"));
+        m2.put("absolute", new NameExpr("true"));
+        book.addAnnotation(createNormalAnnotExpr(Route.class, m2));
+
+        MethodDeclaration testMethod = book.addMethod("testMethod");
+        testMethod.addAnnotation(createMarkerAnnotExpr("PostConstruct"));
+
         System.out.println(cu.toString());
     }
 }

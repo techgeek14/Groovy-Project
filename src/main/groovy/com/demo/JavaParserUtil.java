@@ -8,16 +8,21 @@ import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.ConstructorDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
+import com.github.javaparser.ast.body.Parameter;
 import com.github.javaparser.ast.expr.*;
 import com.github.javaparser.ast.stmt.BlockStmt;
 import com.github.javaparser.ast.stmt.ExpressionStmt;
 import com.github.javaparser.ast.stmt.Statement;
+import com.github.javaparser.ast.type.UnknownType;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.ivy.util.CollectionUtils;
 
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -161,4 +166,56 @@ public class JavaParserUtil {
         }
         return expr;
     }
+
+    public static Expression accessMethod(String methodName, List<Expression> args){
+        MethodCallExpr method = new MethodCallExpr();
+        method.setName(methodName);
+        NodeList<Expression> nodeList = new NodeList<>();
+        args.stream().forEach(r -> nodeList.add(r));
+        method.setArguments(nodeList);
+        return method;
+    }
+
+    public static NormalAnnotationExpr createNormalAnnotExpr(Class<? extends Annotation> annotationClass, Map<String, Expression> attributes){
+        NodeList<MemberValuePair> pairs = new NodeList<>();
+        NormalAnnotationExpr annotationExpr = new NormalAnnotationExpr();
+        annotationExpr.setName(annotationClass.getSimpleName());
+        annotationExpr.setPairs(pairs);
+
+        if(attributes != null && ! attributes.isEmpty()) {
+            attributes.forEach((k, v) -> {
+                try {
+                    Optional<Method> field = Arrays.stream(annotationClass.getDeclaredMethods()).filter(f -> StringUtils.equalsIgnoreCase(f.getName(), k)).findFirst();
+                    field.ifPresent(r -> {
+                        MemberValuePair memberValuePair = new MemberValuePair();
+                        memberValuePair.setName(r.getName());
+                        memberValuePair.setValue(v);
+                        pairs.add(memberValuePair);
+                    });
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+            });
+        }
+
+        return annotationExpr;
+    }
+
+    public static MarkerAnnotationExpr createMarkerAnnotExpr(String annotationName){
+        return new MarkerAnnotationExpr(annotationName);
+    }
+
+    public static ExpressionStmt createGlobalInstance(String refVariable,  Class<?> clazz) {
+        ExpressionStmt stmt = new ExpressionStmt();
+        ObjectCreationExpr instance = new ObjectCreationExpr();
+        instance.setType(clazz);
+        AssignExpr assignExpr = new AssignExpr();
+        assignExpr.setTarget(new NameExpr(refVariable));
+        assignExpr.setValue(instance);
+        assignExpr.setOperator(AssignExpr.Operator.ASSIGN);
+
+        stmt.setExpression(assignExpr);
+        return stmt;
+    }
+
 }
