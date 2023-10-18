@@ -3,16 +3,16 @@ package com.demo;
 import com.github.javaparser.JavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Modifier;
+import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.NodeList;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.Parameter;
 import com.github.javaparser.ast.body.VariableDeclarator;
+import com.github.javaparser.ast.comments.Comment;
+import com.github.javaparser.ast.comments.LineComment;
 import com.github.javaparser.ast.expr.*;
-import com.github.javaparser.ast.stmt.BlockStmt;
-import com.github.javaparser.ast.stmt.ExpressionStmt;
-import com.github.javaparser.ast.stmt.LabeledStmt;
-import com.github.javaparser.ast.stmt.ReturnStmt;
+import com.github.javaparser.ast.stmt.*;
 import com.github.javaparser.ast.type.*;
 import com.vaadin.flow.component.*;
 import com.vaadin.flow.component.button.Button;
@@ -23,6 +23,7 @@ import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
+import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.select.Select;
 import com.vaadin.flow.component.textfield.PasswordField;
 import com.vaadin.flow.component.textfield.TextArea;
@@ -53,6 +54,8 @@ public class VaadinCodeGenerator {
     public static List<String> headerColumns = List.of("col1", "col2", "col3");
 
     public static StringBuilder components = new StringBuilder();
+
+    private static Map<String, List<Expression>> methodExprHolder = new LinkedHashMap<>();
 
     private static Map<String, String> inputTypeList = new HashMap<>() {{
         put("button", "btn");
@@ -122,88 +125,129 @@ public class VaadinCodeGenerator {
         String component = compClass.getSimpleName();
         StringBuilder sb = new StringBuilder();
         VaadinTemplate.init("Login", "com.example.application.views.main");
-        getClassBuilder("Login").ifPresent(builder -> {
-            builder.getMethodsByName("buildComponent").get(0).getBody()
-                    .ifPresent(body -> {
-                        switch (component) {
-                            case "Grid" -> {
-                                sb.append(String.format("%s<String> %s = new %s();", component, refVariable, component)).append("\n");
-                                sb.append(getDefaultTemplateProperties(refVariable, element));
-                                sb.append(String.format("%s.setItems(%s);", refVariable, buildListItems())).append("\n");
-                                headerColumns.forEach(col -> {
-                                    sb.append(String.format("%s.addColumn(x -> x).setHeader(\"%s\");", refVariable, col)).append("\n");
-                                });
-                            }
-                            case "Component" -> {
-                                System.out.println("TODO " + element.tagName());
-                                sb.append("\n");
-                            }
-                            case "Anchor" -> {
-                                sb.append(String.format("%s %s = new %s();", component, refVariable, component)).append("\n");
-                                sb.append(getDefaultTemplateProperties(refVariable, element)).append("\n");
-                                sb.append(String.format("%s.setTitle(\"%s\");", refVariable, element.attributes().get("title"))).append("\n");
-                                sb.append(String.format("%s.setHref(\"%s\");", refVariable, element.attributes().get("href"))).append("\n");
-                                sb.append(String.format("%s.setTarget(\"%s\");", refVariable, element.attributes().get("target"))).append("\n");
-                            }
-                            case "Icon" -> {
-                                imports.add(elementMapper.get("vaadinIcon").getCanonicalName());
-                                sb.append(String.format("%s %s = new %s(%s.QUESTION_CIRCLE_O);", component, refVariable, component, elementMapper.get("vaadinIcon").getSimpleName())).append("\n");
-                                sb.append(getDefaultTemplateProperties(refVariable, element)).append("\n");
-                            }
-                            default -> {
-                                body.addStatement(createInstance(compClass, null, refVariable, null));
-                                addImports(Set.of(compClass.getCanonicalName()), "Login");
-                                sb.append(String.format("%s %s = new %s();", component, refVariable, component)).append("\n");
-                                sb.append(getDefaultTemplateProperties(refVariable, element)).append("\n");
-                            }
-                        }
-                        if(element.attributes().get("parentId").isEmpty()) {
-                            body.addStatement(accessMethod(Map.of("add", List.of(new NameExpr(refVariable))), ROOT));
-                        }
-                    });
-        });
+        switch (component) {
+            case "Grid" -> {
+                addMethodBody("buildComponent", "Login", List.of(createInstance(compClass, String.class, refVariable, null).getExpression()));
+                addImports(Set.of(compClass.getCanonicalName()), "Login");
+                sb.append(String.format("%s<String> %s = new %s();", component, refVariable, component)).append("\n");
+                sb.append(getDefaultTemplateProperties(refVariable, element));
+                sb.append(String.format("%s.setItems(%s);", refVariable, buildListItems())).append("\n");
+                methodExprHolder.clear();
+                methodExprHolder.put("setItems", List.of(new StringLiteralExpr(buildListItems())));
+                addMethodBody("buildComponent", "Login", List.of(accessMethod(methodExprHolder, refVariable)));
+                headerColumns.forEach(col -> {
+                    sb.append(String.format("%s.addColumn(x -> x).setHeader(\"%s\");", refVariable, col)).append("\n");
+                });
+            }
+            case "Component" -> {
+                System.out.println("TODO " + element.tagName());
+                sb.append("\n");
+            }
+            case "Anchor" -> {
+                addMethodBody("buildComponent", "Login", List.of(createInstance(compClass, null, refVariable, null).getExpression()));
+                addImports(Set.of(compClass.getCanonicalName()), "Login");
+                sb.append(String.format("%s %s = new %s();", component, refVariable, component)).append("\n");
+                sb.append(getDefaultTemplateProperties(refVariable, element)).append("\n");
 
+                sb.append(String.format("%s.setTitle(\"%s\");", refVariable, element.attributes().get("title"))).append("\n");
+                methodExprHolder.clear();
+                methodExprHolder.put("setTitle", List.of(new StringLiteralExpr(element.attributes().get("title"))));
+                addMethodBody("buildComponent", "Login", List.of(accessMethod(methodExprHolder, refVariable)));
 
+                sb.append(String.format("%s.setHref(\"%s\");", refVariable, element.attributes().get("href"))).append("\n");
+                methodExprHolder.clear();
+                methodExprHolder.put("setHref", List.of(new StringLiteralExpr(element.attributes().get("href"))));
+                addMethodBody("buildComponent", "Login", List.of(accessMethod(methodExprHolder, refVariable)));
 
+                sb.append(String.format("%s.setTarget(\"%s\");", refVariable, element.attributes().get("target"))).append("\n");
+                methodExprHolder.clear();
+                methodExprHolder.put("setTarget", List.of(new StringLiteralExpr(element.attributes().get("target"))));
+                addMethodBody("buildComponent", "Login", List.of(accessMethod(methodExprHolder, refVariable)));
+            }
+            case "Icon" -> {
+                addMethodBody("buildComponent", "Login", List.of(createInstance(compClass, null, refVariable, accessField(new NameExpr(elementMapper.get("vaadinIcon").getSimpleName()), "QUESTION_CIRCLE_O")).getExpression()));
+                addImports(Set.of(elementMapper.get("vaadinIcon").getCanonicalName(), elementMapper.get("svg").getCanonicalName()), "Login");
+                imports.add(elementMapper.get("vaadinIcon").getCanonicalName());
+                sb.append(String.format("%s %s = new %s(%s.QUESTION_CIRCLE_O);", component, refVariable, component, elementMapper.get("vaadinIcon").getSimpleName())).append("\n");
+                sb.append(getDefaultTemplateProperties(refVariable, element)).append("\n");
+            }
+            default -> {
+//                body.addStatement(createInstance(compClass, null, refVariable, null));
+                addMethodBody("buildComponent", "Login", List.of(createInstance(compClass, null, refVariable, null).getExpression()));
+                addImports(Set.of(compClass.getCanonicalName()), "Login");
+                sb.append(String.format("%s %s = new %s();", component, refVariable, component)).append("\n");
+                sb.append(getDefaultTemplateProperties(refVariable, element)).append("\n");
+            }
+        }
         return sb.toString();
     }
 
     public static String getDefaultTemplateProperties(String refVariable, Element element){
         StringBuilder sb = new StringBuilder();
         sb.append(String.format("%s.setId(\"%s\");",refVariable, element.id())).append("\n");
+        methodExprHolder.clear();
+        methodExprHolder.put("setId", List.of(new StringLiteralExpr(element.id())));
+        addMethodBody("buildComponent", "Login", List.of(accessMethod(methodExprHolder, refVariable)));
+
         String style = Arrays.stream(element.attributes().get("style").split("\n")).map(String::trim).collect(Collectors.joining(" "));
         if(StringUtils.isNotBlank(style)){
             sb.append(String.format("%s.getElement().setAttribute(\"style\", \"%s\");", refVariable, style)).append("\n");
+            methodExprHolder.clear();
+            methodExprHolder.put("getElement", List.of());
+            methodExprHolder.put("setAttribute", List.of(new StringLiteralExpr("style"), new StringLiteralExpr(style)));
+            addMethodBody("buildComponent", "Login", List.of(accessMethod(methodExprHolder, refVariable)));
         }
         if(! element.attributes().get("class").isEmpty()){
             String classNames = element.attributes().get("class").replace(" ", "\",\"");
             if(StringUtils.isNotBlank(classNames)){
                 sb.append(String.format("%s.addClassNames(\"%s\");", refVariable, classNames)).append("\n");
+                methodExprHolder.clear();
+                methodExprHolder.put("addClassNames", List.of(new StringLiteralExpr(classNames)));
+                addMethodBody("buildComponent", "Login", List.of(accessMethod(methodExprHolder, refVariable)));
             }
         }
         String elementContent = getElementContent(element);
         if(StringUtils.isNotBlank(elementContent) && isHtmlContainer(element)){
             sb.append(String.format("%s.setText(\"%s\");", refVariable, elementContent.trim())).append("\n");
+            methodExprHolder.clear();
+            methodExprHolder.put("setText", List.of(new StringLiteralExpr(elementContent.trim())));
+            addMethodBody("buildComponent", "Login", List.of(accessMethod(methodExprHolder, refVariable)));
         }
         if(element.attributes().isEmpty()){
             if(element.attributes().get("parentId").isEmpty()){
                 sb.append(String.format("content.add(%s);", refVariable)).append("\n");
+                methodExprHolder.clear();
+                methodExprHolder.put("add", List.of(new NameExpr(refVariable)));
+                addMethodBody("buildComponent", "Login", List.of(accessMethod(methodExprHolder, ROOT)));
             }
         } else {
             if(! element.attributes().get("value").isEmpty() && isHtmlContainer(element)){
                 sb.append(String.format("%s.setText(\"%s\");", refVariable, element.attributes().get("value").trim())).append("\n");
+                methodExprHolder.clear();
+                methodExprHolder.put("setText", List.of(new StringLiteralExpr(element.attributes().get("value").trim())));
+                addMethodBody("buildComponent", "Login", List.of(accessMethod(methodExprHolder, refVariable)));
             }
             if(element.attributes().get("parentId").isEmpty()){
                 sb.append(String.format("content.add(%s);", refVariable)).append("\n");
+                methodExprHolder.clear();
+                methodExprHolder.put("add", List.of(new NameExpr(refVariable)));
+                addMethodBody("buildComponent", "Login", List.of(accessMethod(methodExprHolder, ROOT)));
             } else {
                 if(! element.attributes().get("compType").isEmpty() && isFlexCompType(element)){
                     sb.append(String.format("%s.add(%s);", element.attributes().get("parentId"), refVariable)).append("\n");
+                    methodExprHolder.clear();
+                    methodExprHolder.put("add", List.of(new NameExpr(refVariable)));
+                    addMethodBody("buildComponent", "Login", List.of(accessMethod(methodExprHolder, element.attributes().get("parentId"))));
                 }
             }
             if(element.tagName().equalsIgnoreCase("input") && ! element.attributes().get("value").isEmpty() && isAbstractTextField(element)){
                 sb.append(String.format("%s.setValue(\"%s\");", refVariable, element.attributes().get("value"))).append("\n");
+                methodExprHolder.clear();
+                methodExprHolder.put("setValue", List.of(new StringLiteralExpr(element.attributes().get("value"))));
+                addMethodBody("buildComponent", "Login", List.of(accessMethod(methodExprHolder, refVariable)));
             }
         }
+        addMethodBody("buildComponent", "Login", List.of());
         return sb.toString();
     }
 
@@ -288,10 +332,10 @@ public class VaadinCodeGenerator {
     }
 
     public static String getJavaContent() {
-        String className = "Login";
-        String packageName = "com.example.application.views.main";
-        VaadinTemplate.init(className, packageName);
-        return getContent(className);
+//        String className = "Login";
+//        String packageName = "com.example.application.views.main";
+//        VaadinTemplate.init(className, packageName);
+        return getContent("Login");
     }
 
     public static void main(String[] args) {
@@ -381,8 +425,6 @@ public class VaadinCodeGenerator {
 //            MethodCallExpr mx = new MethodCallExpr();
 //            mx.setName("add");
 //            mx.setArguments(NodeList.nodeList(new NameExpr("root")));
-//            body.addStatement(mx);
-
             body.addStatement(accessMethod("add", List.of(new NameExpr("root"))));
         }));
 

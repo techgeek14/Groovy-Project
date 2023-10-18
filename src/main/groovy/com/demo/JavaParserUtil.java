@@ -104,8 +104,11 @@ public class JavaParserUtil {
     }
 
     public static void addImports(Set<String> imports, String className){
+        Set<String> defaultImports = getCompilationUnitByClassName(className).getImports().stream().map(id -> id.getName().asString()).collect(Collectors.toSet());
+        defaultImports.addAll(imports);
+
         NodeList<ImportDeclaration> nodeList = new NodeList<>();
-        imports.forEach(imp -> {
+        defaultImports.forEach(imp -> {
             nodeList.add(new ImportDeclaration(imp, false, false));
         });
         getCompilationUnitByClassName(className).setImports(nodeList);
@@ -162,7 +165,7 @@ public class JavaParserUtil {
                     expr.addArgument(arg);
                 }
             }
-            ref = expr.toString();
+            ref = new String(expr.toString());
         }
         return expr;
     }
@@ -218,4 +221,15 @@ public class JavaParserUtil {
         return stmt;
     }
 
+    public static void addMethodBody(String methodName, String className, List<Expression> statements){
+        getClassBuilder(className).ifPresent(builder -> {
+           if(builder.getMethodsByName(methodName).size() > 0) {
+               builder.getMethodsByName(methodName).get(0).getBody().ifPresent(body -> {
+                   if(statements != null && statements.size() > 0) {
+                    statements.forEach(expression -> body.addStatement(expression));
+                   }
+               });
+           }
+        });
+    }
 }

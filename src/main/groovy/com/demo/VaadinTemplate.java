@@ -26,11 +26,14 @@ public class VaadinTemplate {
     public static void init(String className, String packageName) {
         Optional<ClassOrInterfaceDeclaration> classBuilder = getClassBuilder(className);
         Set<String> imports = new HashSet<>();
+
         classBuilder.ifPresent(x -> {
             if (x.getMethodsByName("buildComponent").isEmpty()) {
                 x.addExtendedType(HorizontalLayout.class);
                 addPackage(packageName, className);
                 addField(Map.of(HorizontalLayout.class.getSimpleName(), ROOT), className);
+
+                addConstructor(Map.of(), className);
 
                 x.addAnnotation(createNormalAnnotExpr(Route.class, Map.of("value", new StringLiteralExpr("/login"))));
                 x.addAnnotation(createNormalAnnotExpr(PageTitle.class, Map.of("value", new StringLiteralExpr("LoginPage"))));
