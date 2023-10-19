@@ -124,7 +124,8 @@ public class VaadinCodeGenerator {
     public static String generateComponentTemplate(Class<?> compClass, String refVariable, Element element) {
         String component = compClass.getSimpleName();
         StringBuilder sb = new StringBuilder();
-        VaadinTemplate.init("Login", "com.example.application.views.main");
+
+        VaadinTemplate.init("Login", "com.example.application.views.main", null, null);
         switch (component) {
             case "Grid" -> {
                 addMethodBody("buildComponent", "Login", List.of(createInstance(compClass, String.class, refVariable, null).getExpression()));
