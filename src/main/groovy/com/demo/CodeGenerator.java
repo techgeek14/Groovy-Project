@@ -6,15 +6,13 @@ import com.github.javaparser.ast.expr.StringLiteralExpr;
 import com.vaadin.flow.component.*;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.grid.Grid;
-import com.vaadin.flow.component.html.Anchor;
-import com.vaadin.flow.component.html.Div;
-import com.vaadin.flow.component.html.Image;
-import com.vaadin.flow.component.html.Paragraph;
+import com.vaadin.flow.component.html.*;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.select.Select;
+import com.vaadin.flow.component.tabs.TabSheet;
 import com.vaadin.flow.component.textfield.PasswordField;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
@@ -45,13 +43,14 @@ public class CodeGenerator {
         elementMapper.put("textField", TextField.class);
         elementMapper.put("button", Button.class);
         elementMapper.put("icon", Icon.class);
-        elementMapper.put("password", PasswordField.class);
+        elementMapper.put("passwordField", PasswordField.class);
         elementMapper.put("table", Grid.class);
         elementMapper.put("dropDown", Select.class);
         elementMapper.put("textBlock", TextArea.class);
         elementMapper.put("vaadinIcon", VaadinIcon.class);
         elementMapper.put("a", Anchor.class);
         elementMapper.put("svg", Icon.class);
+        elementMapper.put("tabs", TabSheet.class);
     }
     public static void getComponent(Class<?> compClass, Map<String, Object> attributes, String referenceVariable, String parentId, String methodName, String className){
         switch (compClass.getSimpleName()) {
@@ -117,8 +116,8 @@ public class CodeGenerator {
             }
 
             if(attributes.get("classNames") != null) {
-                List<String> classList = (List<String>) attributes.get("className");
-                if(classList != null){
+                List<String> classList = (List<String>) attributes.get("classNames");
+                if(classList != null && classList.size() > 0){
                     List<Expression> classNames = classList.stream().map(r -> new StringLiteralExpr(r)).collect(Collectors.toList());
                     methodExprHolder.clear();
                     methodExprHolder.put("addClassNames", classNames);
@@ -126,10 +125,24 @@ public class CodeGenerator {
                 }
             }
 
-            if (isHtmlContainer(component) && attributes.get("text") != null) {
-                methodExprHolder.clear();
-                methodExprHolder.put("setText", List.of(new StringLiteralExpr((String) attributes.get("text"))));
-                addMethodBody(methodName, className, List.of(accessMethod(methodExprHolder, refVariable)));
+            if (isAbstractTextField(component)) {
+                if(attributes.get("label") != null) {
+                    methodExprHolder.clear();
+                    methodExprHolder.put("setLabel", List.of(new StringLiteralExpr((String) attributes.get("label"))));
+                    addMethodBody(methodName, className, List.of(accessMethod(methodExprHolder, refVariable)));
+                }
+            } else if(isHtmlContainer(component) && Arrays.stream(component.getMethods()).anyMatch(x -> StringUtils.equalsIgnoreCase(x.getName(), "setSrc"))) {
+                    if(attributes.get("src") != null){
+                        methodExprHolder.clear();
+                        methodExprHolder.put("setSrc", List.of(new StringLiteralExpr((String) attributes.get("src"))));
+                        addMethodBody(methodName, className, List.of(accessMethod(methodExprHolder, refVariable)));
+                    }
+            } else {
+                if(attributes.get("text") != null) {
+                    methodExprHolder.clear();
+                    methodExprHolder.put("setText", List.of(new StringLiteralExpr((String) attributes.get("text"))));
+                    addMethodBody(methodName, className, List.of(accessMethod(methodExprHolder, refVariable)));
+                }
             }
 
             methodExprHolder.clear();
@@ -196,5 +209,9 @@ public class CodeGenerator {
         String randomGeneratedCode = UUID.randomUUID().toString().split("-")[0].substring(0, 6).toString();
         String prefix = component.getSimpleName().toLowerCase();
         return prefix.concat(randomGeneratedCode.substring(0, 1).toUpperCase().concat(randomGeneratedCode.substring(1)));
+    }
+
+    public static void main(String[] args) {
+        Image im = new Image();
     }
 }

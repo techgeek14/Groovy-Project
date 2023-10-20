@@ -1,6 +1,8 @@
 package com.demo;
 
 import com.github.javaparser.JavaParser;
+import com.github.javaparser.JavaToken;
+import com.github.javaparser.TokenRange;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Modifier;
 import com.github.javaparser.ast.Node;
@@ -427,6 +429,13 @@ public class VaadinCodeGenerator {
 //            mx.setName("add");
 //            mx.setArguments(NodeList.nodeList(new NameExpr("root")));
             body.addStatement(accessMethod("add", List.of(new NameExpr("root"))));
+            System.out.println("Size: " + body.getStatement(body.getStatements().size()-1));
+            body.addStatement(new NameExpr("Welcome"));
+            NodeList<Statement> nodeList = new NodeList<>();
+            nodeList.add(new ExpressionStmt(new NameExpr("welcome")));
+            nodeList.add(new ExpressionStmt(new NameExpr()));
+            nodeList.add(new ExpressionStmt(new NameExpr("Parser")));
+            body.setStatements(nodeList);
         }));
 
         Map<String, Expression> m2 = new LinkedHashMap<>();

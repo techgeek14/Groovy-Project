@@ -5,12 +5,12 @@ import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.expr.Expression;
 import com.github.javaparser.ast.expr.NameExpr;
 import com.github.javaparser.ast.expr.StringLiteralExpr;
-import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.grid.Grid;
-import com.vaadin.flow.component.html.*;
+import com.vaadin.flow.component.html.Anchor;
+import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.Image;
-import com.vaadin.flow.component.html.Main;
+import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
@@ -21,9 +21,7 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 
-import java.awt.*;
 import java.util.*;
-import java.util.List;
 
 import static com.demo.JavaParserUtil.*;
 
@@ -49,7 +47,7 @@ public class VaadinTemplate {
         map.put("textField", TextField.class);
         map.put("button", Button.class);
         map.put("icon", Icon.class);
-        map.put("password", PasswordField.class);
+        map.put("passwordField", PasswordField.class);
         map.put("table", Grid.class);
         map.put("dropDown", Select.class);
         map.put("textBlock", TextArea.class);
@@ -72,7 +70,6 @@ public class VaadinTemplate {
                 x.addAnnotation(createNormalAnnotExpr(PageTitle.class, Map.of("value", new StringLiteralExpr(pageTitle))));
 
                 imports.add(HorizontalLayout.class.getCanonicalName());
-                //            imports.add(VerticalLayout.class.getCanonicalName());
                 imports.add(Route.class.getCanonicalName());
                 imports.add(PageTitle.class.getCanonicalName());
                 imports.add("jakarta.annotation.PostConstruct");
@@ -81,10 +78,21 @@ public class VaadinTemplate {
                 MethodDeclaration buildComponent = createMethod("buildComponent", className);
                 buildComponent.addAnnotation(createMarkerAnnotExpr("PostConstruct"));
 
-                buildComponent.getBody().ifPresent(body -> {
-                    body.addStatement(createGlobalInstance(ROOT, HorizontalLayout.class));
-                    body.addStatement(accessMethod("add", List.of(new NameExpr(ROOT))));
-                });
+                Map<String, List<Expression>> methodCallExpr = new LinkedHashMap<>();
+                methodCallExpr.put("getElement", List.of());
+                methodCallExpr.put("setAttribute", List.of(new StringLiteralExpr("style"),
+                        new StringLiteralExpr("display: flex; flex-direction: row; flex-wrap: wrap; width: 100%; height: 100%;")));
+
+                addMethodBody(buildComponent.getNameAsString(), className,
+                        List.of(createGlobalInstance(ROOT, HorizontalLayout.class).getExpression(),
+                                accessMethod("add", List.of(new NameExpr(ROOT))),
+                                accessMethod(methodCallExpr, ROOT)));
+
+//                buildComponent.getBody().ifPresent(body -> {
+//                    body.addStatement(createGlobalInstance(ROOT, HorizontalLayout.class));
+//                    body.addStatement(accessMethod("add", List.of(new NameExpr(ROOT))));
+//                    body.addStatement(accessMethod(Map.of("getElement", List.of(), "setAttribute", List.of(new StringLiteralExpr("style"), new StringLiteralExpr(""))), ROOT));
+//                });
             }
 
         });
