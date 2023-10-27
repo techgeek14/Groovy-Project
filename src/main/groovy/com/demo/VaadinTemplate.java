@@ -35,25 +35,6 @@ public class VaadinTemplate {
 
     public static final String ROOT = "root";
 
-    public static Map<String, Object> map = new HashMap<>();
-
-
-    static {
-//        map.put("default", List.of("id", "src", "alt", "text", "className", "style", "label", "name"));
-        map.put("img", Image.class);
-        map.put("label", Paragraph.class);
-        map.put("container", HorizontalLayout.class);
-        map.put("section", Div.class);
-        map.put("textField", TextField.class);
-        map.put("button", Button.class);
-        map.put("icon", Icon.class);
-        map.put("passwordField", PasswordField.class);
-        map.put("table", Grid.class);
-        map.put("dropDown", Select.class);
-        map.put("textBlock", TextArea.class);
-        map.put("vaadinIcon", VaadinIcon.class);
-        map.put("a", Anchor.class);
-    }
     public static void init(String className, String packageName, String routeUrl, String pageTitle) {
         Optional<ClassOrInterfaceDeclaration> classBuilder = getClassBuilder(className);
         Set<String> imports = new HashSet<>();
@@ -87,7 +68,7 @@ public class VaadinTemplate {
                         List.of(createGlobalInstance(ROOT, HorizontalLayout.class).getExpression(),
                                 accessMethod("add", List.of(new NameExpr(ROOT))),
                                 accessMethod(methodCallExpr, ROOT)));
-
+                addBlankSpace("buildComponent", className);
 //                buildComponent.getBody().ifPresent(body -> {
 //                    body.addStatement(createGlobalInstance(ROOT, HorizontalLayout.class));
 //                    body.addStatement(accessMethod("add", List.of(new NameExpr(ROOT))));

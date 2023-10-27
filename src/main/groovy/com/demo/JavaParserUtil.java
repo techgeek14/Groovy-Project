@@ -11,8 +11,10 @@ import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.Parameter;
 import com.github.javaparser.ast.expr.*;
 import com.github.javaparser.ast.stmt.BlockStmt;
+import com.github.javaparser.ast.stmt.EmptyStmt;
 import com.github.javaparser.ast.stmt.ExpressionStmt;
 import com.github.javaparser.ast.stmt.Statement;
+import com.github.javaparser.ast.type.TypeParameter;
 import com.github.javaparser.ast.type.UnknownType;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.icon.VaadinIcon;
@@ -20,6 +22,7 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.ivy.util.CollectionUtils;
 
+import javax.swing.text.html.Option;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -33,6 +36,7 @@ public class JavaParserUtil {
 
     private static Map<String, CompilationUnit> unitMap = new HashMap();
 
+    private static final String STRIP_SEMICOLON = "\\h;";
     private static CompilationUnit getCompilationUnitByClassName(String className) {
         return unitMap.computeIfAbsent(className, func -> {
             CompilationUnit cu = new CompilationUnit();
@@ -96,7 +100,7 @@ public class JavaParserUtil {
     }
 
     public static String getContent(String className) {
-        return unitMap.containsKey(className) ? unitMap.get(className).toString() : "";
+        return unitMap.containsKey(className) ? unitMap.get(className).toString().replaceAll(STRIP_SEMICOLON, "") : "";
     }
 
     public static void addPackage(String packageName, String className){
@@ -222,14 +226,28 @@ public class JavaParserUtil {
     }
 
     public static void addMethodBody(String methodName, String className, List<Expression> statements){
-        getClassBuilder(className).ifPresent(builder -> {
-           if(builder.getMethodsByName(methodName).size() > 0) {
-               builder.getMethodsByName(methodName).get(0).getBody().ifPresent(body -> {
-                   if(statements != null && statements.size() > 0) {
-                    statements.forEach(expression -> body.addStatement(expression));
-                   }
-               });
-           }
+        getMethod(className, methodName).ifPresent(s -> {
+            statements.forEach(ex -> s.addStatement(ex));
         });
+    }
+
+    public static Expression assiginExpression(Expression leftArgs, Expression rightArgs){
+        return new AssignExpr(leftArgs, rightArgs, AssignExpr.Operator.ASSIGN);
+    }
+
+    public static Expression declareVariable(Class<?> type, String refVariable){
+        return new VariableDeclarationExpr(new TypeParameter(type.getSimpleName()), refVariable);
+    }
+
+    public static void addBlankSpace(String methodName, String className) {
+        getMethod(className, methodName).ifPresent(s -> s.getStatements().add(new EmptyStmt()));
+    }
+
+    public static Optional<BlockStmt> getMethod(String className, String methodName){
+        Optional<ClassOrInterfaceDeclaration> builder = getClassBuilder(className);
+        if(builder.isPresent() && builder.get().getMethodsByName(methodName).size() > 0) {
+            return builder.get().getMethodsByName(methodName).get(0).getBody();
+        }
+        return null;
     }
 }

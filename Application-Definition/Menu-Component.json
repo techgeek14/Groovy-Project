@@ -1,0 +1,35 @@
+{
+  "screen": "Login",
+  "packageName": "com.example.application.views.main",
+  "routeUrl": "/login",
+  "pageTitle": "LoginPage",
+  "header": {},
+  "sideBar": {},
+  "body": {
+    "menuBar": {
+      "menu": [
+        {
+          "name": "File",
+          "menu": [
+            {
+              "name": "Environment"
+            },
+            {
+              "name": "Restart"
+            },
+            {
+              "name": "Exit"
+            }
+          ]
+        },
+        {
+          "name": "Forms"
+        },
+        {
+          "name": "Help"
+        }
+      ]
+    }
+  },
+  "footer": {}
+}

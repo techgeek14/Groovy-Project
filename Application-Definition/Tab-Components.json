@@ -1,0 +1,32 @@
+{
+  "screen": "Login",
+  "packageName": "com.example.application.views.main",
+  "routeUrl": "/login",
+  "pageTitle": "LoginPage",
+  "header": {},
+  "sideBar": {},
+  "body": {
+    "tabs": {
+      "id": "tabs-selector",
+      "content": [
+        {
+          "tabName": "HomePage",
+          "tabContent": {
+            "label": {
+              "text": "© 2023 Kriti Industries India Limited"
+            }
+          }
+        },
+        {
+          "tabName": "Dashboard",
+          "tabContent": {
+            "label": {
+              "text": "Welcome to DashBoard Section"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "footer": {}
+}

@@ -1,0 +1,106 @@
+{
+  "screen": "Login",
+  "packageName": "com.example.application.views.main",
+  "routeUrl": "/login",
+  "pageTitle": "LoginPage",
+  "header": {},
+  "sideBar": {},
+  "body": {
+    "section": {
+      "img": {
+        "src": "https://udaan.kritiindia.com/assets/images/logo-dark.png",
+        "alt": "krit-logo"
+      },
+      "label": {
+        "text": "A Family of 500+ Dealers Growing Everyday!",
+        "classNames": []
+      }
+    },
+    "container": {
+      "id": "main-cont",
+      "style": "display:flex; flex-direction:row; flex-wrap: nowrap;",
+      "classNames": [
+        "container"
+      ],
+      "section1": {
+        "id": "sec-1",
+        "style": "",
+        "classNames": [
+          "login-sec-1"
+        ],
+        "label1": {
+          "id": "ptag-1",
+          "text": "Welcome Back !",
+          "style": "",
+          "classNames": []
+        },
+        "label2": {
+          "id": "ptag-2",
+          "text": "Sign in to continue to DMS.",
+          "style": "",
+          "classNames": []
+        },
+        "textField1": {
+          "name": "User Name",
+          "id": "tf1-user-name",
+          "label": "Enter User Name",
+          "style": "",
+          "type": "text",
+          "classNames": [
+            "txt1-field",
+            "txt2-field"
+          ]
+        },
+        "passwordField2": {
+          "name": "Password",
+          "id": "tf1-user-name",
+          "label": "Enter Password",
+          "style": "",
+          "type": "password",
+          "classNames": []
+        },
+        "section1": {
+          "icon": {
+            "id": "icon-1",
+            "style": "",
+            "classNames": []
+          },
+          "a": {
+            "id": "forgot-link",
+            "text": "Forgot your password?",
+            "src": "",
+            "style": "",
+            "classNames": []
+          },
+          "button": {
+            "id": "btn-1",
+            "text": "Log In",
+            "style": "",
+            "classNames": []
+          }
+        }
+      },
+      "section2": {
+        "id": "sec-2",
+        "style": "",
+        "classNames": [
+          "login-sec-1"
+        ],
+        "img": {
+          "src": "",
+          "alt": "img"
+        }
+      }
+    }
+  },
+  "footer": {
+    "container": {
+      "label": {
+        "id": "ptag-1",
+        "text": "© 2023 Kriti Industries India Limited",
+        "style": "",
+        "classNames": []
+      }
+    }
+  }
+}
